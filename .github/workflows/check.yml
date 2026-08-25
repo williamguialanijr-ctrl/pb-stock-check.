@@ -1,0 +1,24 @@
+name: Check Bandai Stock
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Automatically runs every 5 minutes 24/7
+  workflow_dispatch:      # Allows manual testing button
+
+jobs:
+  check-stock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run Stock Check
+        run: python monitor.py
