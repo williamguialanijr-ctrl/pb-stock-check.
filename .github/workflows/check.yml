@@ -1,24 +1,40 @@
-name: Check Bandai Stock
+import os
+import time
+import requests
+from bs4 import BeautifulSoup
 
-on:
-  schedule:
-    - cron: '*/5 * * * *'  # Automatically runs every 5 minutes 24/7
-  workflow_dispatch:      # Allows manual testing button
+PRODUCT_URL = "https://p-bandai.com/tw/item/A2866729001"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1541634045362970725/ceoT9Mc9m1vzqy613p5r_I9LjU-wO5J0J4FDBD5X0wdop4sBDmPBTvIMQwNyUPPxT2s6"
 
-jobs:
-  check-stock:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
+}
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+for i in range(5):
+    try:
+        response = requests.get(PRODUCT_URL, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        page_text = soup.get_text()
 
-      - name: Install Dependencies
-        run: pip install requests beautifulsoup4
+        # Handle IP blocks / anti-bot pages
+        if response.status_code != 200 or "Access Denied" in page_text:
+            print(f"[{i+1}/5] Page blocked or loading issue (Status {response.status_code}).")
+        
+        # Only trigger alert if actual purchase buttons are present
+        elif "開始預購" in page_text or "加入購物車" in page_text:
+            payload = {
+                "content": "@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
+            }
+            requests.post(WEBHOOK_URL, json=payload)
+            print(f"[{i+1}/5] In stock! Alert sent to Discord.")
+            break
+            
+        else:
+            print(f"[{i+1}/5] Out of stock. Waiting 60s...")
 
-      - name: Run Stock Check
-        run: python monitor.py
+    except Exception as e:
+        print(f"[{i+1}/5] Error checking stock: {e}")
+
+    if i < 4:
+        time.sleep(60)
