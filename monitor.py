@@ -15,24 +15,24 @@ for i in range(5):
     try:
         response = requests.get(PRODUCT_URL, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
-        page_text = soup.get_text()
+        page_text = soup.get_text().upper()
 
         # Handle IP blocks / access issues
-        if response.status_code != 200 or "Access Denied" in page_text:
+        if response.status_code != 200 or "ACCESS DENIED" in page_text:
             print(f"[{i+1}/5] Page blocked or loading issue (Status {response.status_code}).")
 
-        # Explicitly check if it's currently OUT OF STOCK (English or Chinese)
-        elif "SORRY, OUT OF STOCK" in page_text or "OUT OF STOCK" in page_text or "缺貨" in page_text:
-            print(f"[{i+1}/5] Out of stock. Waiting 60s...")
-
-        # If "OUT OF STOCK" is no longer found, trigger the alert!
-        else:
+        # Check explicitly for IN-STOCK purchase buttons/triggers
+        elif "PRE-ORDER" in page_text or "ADD TO CART" in page_text or "開始預購" in page_text or "加入購物車" in page_text:
             payload = {
-                "content": "@everyone 🚨 **ONE PIECE CARD COLLECTION IS BACK IN STOCK / PRE-ORDER OPEN!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
+                "content": "@everyone 🚨 **ONE PIECE CARD COLLECTION IS NOW AVAILABLE!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
             }
             requests.post(WEBHOOK_URL, json=payload)
             print(f"[{i+1}/5] In stock! Alert sent to Discord.")
             break
+
+        # If no purchase triggers are found, it is out of stock
+        else:
+            print(f"[{i+1}/5] Out of stock. Waiting 60s...")
 
     except Exception as e:
         print(f"[{i+1}/5] Error checking stock: {e}")
