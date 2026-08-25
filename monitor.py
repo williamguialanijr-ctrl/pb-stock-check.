@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,19 +10,26 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-try:
-    response = requests.get(PRODUCT_URL, headers=headers, timeout=10)
-    soup = BeautifulSoup(response.text, "html.parser")
-    page_text = soup.get_text()
+# Loops 5 times (1 check every 60 seconds = 5 continuous minutes)
+for i in range(5):
+    try:
+        response = requests.get(PRODUCT_URL, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        page_text = soup.get_text()
 
-    # Trigger Discord notification if 'OUT OF STOCK' or '缺貨' is missing
-    if "OUT OF STOCK" not in page_text and "缺貨" not in page_text:
-        payload = {
-            "content": "@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\nGrab your set now: https://p-bandai.com/tw/item/A2866729001"
-        }
-        requests.post(WEBHOOK_URL, json=payload)
-        print("In stock! Notification sent to Discord.")
-    else:
-        print("Still out of stock.")
-except Exception as e:
-    print(f"Error checking stock: {e}")
+        if "OUT OF STOCK" not in page_text and "缺貨" not in page_text:
+            payload = {
+                "content": "@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\nGrab your set now: https://p-bandai.com/tw/item/A2866729001"
+            }
+            requests.post(WEBHOOK_URL, json=payload)
+            print("In stock! Alert sent to Discord.")
+            break
+        else:
+            print(f"[{i+1}/5] Out of stock. Waiting 60s...")
+
+    except Exception as e:
+        print(f"Error checking stock: {e}")
+
+    # Wait 60 seconds before checking again (skips delay on 5th check)
+    if i < 4:
+        time.sleep(60)
