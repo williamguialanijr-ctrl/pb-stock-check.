@@ -1,36 +1,42 @@
 import os
 import time
-import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests
 
 PRODUCT_URL = "https://p-bandai.com/tw/item/A2866729001"
-WEBHOOK_URL = "https://discord.com/api/webhooks/1541634045362970725/ceoT9Mc9m1vzqy613p5r_I9LjU-wO5J0J4FDBD5X0wdop4sBDmPBTvIMQwNyUPPxT2s6"
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7"
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
 }
+
+if not WEBHOOK_URL:
+    print("Error: DISCORD_WEBHOOK_URL environment variable is missing.")
+    exit(1)
 
 for i in range(5):
     try:
-        response = requests.get(PRODUCT_URL, headers=headers, timeout=10)
+        response = requests.get(
+            PRODUCT_URL, 
+            headers=headers, 
+            impersonate="chrome", 
+            timeout=15
+        )
         soup = BeautifulSoup(response.text, "html.parser")
-        page_text = soup.get_text().upper()
+        page_text = soup.get_text()
 
-        # Handle IP blocks / access issues
-        if response.status_code != 200 or "ACCESS DENIED" in page_text:
-            print(f"[{i+1}/5] Page blocked or loading issue (Status {response.status_code}).")
+        if response.status_code != 200 or "Access Denied" in page_text:
+            print(f"[{i+1}/5] Page blocked or access issue (Status {response.status_code}).")
 
-        # Check explicitly for IN-STOCK purchase buttons/triggers
-        elif "PRE-ORDER" in page_text or "ADD TO CART" in page_text or "開始預購" in page_text or "加入購物車" in page_text:
+        elif "開始預購" in page_text or "加入購物車" in page_text:
             payload = {
-                "content": "@everyone 🚨 **ONE PIECE CARD COLLECTION IS NOW AVAILABLE!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
+                "content": "@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
             }
-            requests.post(WEBHOOK_URL, json=payload)
+            requests.post(WEBHOOK_URL, json=payload, impersonate="chrome")
             print(f"[{i+1}/5] In stock! Alert sent to Discord.")
             break
 
-        # If no purchase triggers are found, it is out of stock
         else:
             print(f"[{i+1}/5] Out of stock. Waiting 60s...")
 
