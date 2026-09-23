@@ -1,9 +1,10 @@
 import os
 import time
 from bs4 import BeautifulSoup
+import requests as std_requests
 from curl_cffi import requests
 
-PRODUCT_URL = "https://p-bandai.com/tw/item/A2866729001"
+PRODUCT_URL = "https://p-bandai.com/tw/item/A2866729002"
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 
 headers = {
@@ -31,9 +32,9 @@ for i in range(5):
 
         elif "開始預購" in page_text or "加入購物車" in page_text:
             payload = {
-                "content": "@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\nhttps://p-bandai.com/tw/item/A2866729001"
+                "content": f"@everyone 🚨 **PRE-ORDER IS NOW LIVE / BACK IN STOCK!** 🚨\n{PRODUCT_URL}"
             }
-            requests.post(WEBHOOK_URL, json=payload, impersonate="chrome")
+            std_requests.post(WEBHOOK_URL, json=payload, timeout=10)
             print(f"[{i+1}/5] In stock! Alert sent to Discord.")
             break
 
