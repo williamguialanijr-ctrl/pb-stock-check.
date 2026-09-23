@@ -15,10 +15,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
+          cache: 'pip'
 
       - name: Install Dependencies
-        run: pip install curl_cffi beautifulsoup4
+        run: |
+          python -m pip install --upgrade pip
+          pip install curl_cffi beautifulsoup4 requests
 
       - name: Run Stock Check
         env:
